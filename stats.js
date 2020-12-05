@@ -1,0 +1,142 @@
+const Discord = require('discord.js');
+const request = require('request');
+
+const config = require('./config.json');
+const prefix = config.prefix;
+const TOKEN = config.token; 
+
+const client = new Discord.Client();
+
+function Judet(id, infectati, decedati, vindecati) {
+    this.id = id;
+    this.infectati = infectati;
+    this.decedati = decedati;
+    this.vindecati = vindecati;
+}
+
+var p = 0;
+var ID = ['Cluj', 'Iasi', 'Timis', 'Brasov', 'Prahova', 'Constanta', 'Ilfov', 'Arges', 'Bihor', 'Sibiu', 'Bacau', 'Suceava', 'Dolj', 'Mures', 'Dambovita', 'Arad', 'Galati', 'Alba', 'Neamt', 'Hunedoara', 'Maramures', 'Valcea', 'Vaslui', 'Olt', 'Buzau', 'Botosani', 'Bistrita-nasaud', 'Braila', 'Satu mare', 'Vrancea', 'Teleorman', 'Salaj', 'Caras-severin', 'Ialomita', 'Harghita', 'Calarasi', 'Gorj', 'Giurgiu', 'Covasna', 'Mehedinti', 'Tulcea'];
+var populatie = ['691 000', '772 000', '758 000', '549 000', '762 000', '684 000', '388 000', '591 000', '575 000', '375 000', '616 000', '634 000', '660 000', '550 000', '501 000', '409 000', '536 000', '373 000', '470 000', '396 000', '461 000', '355 000', '395 000', '394 000', '432 000', '412 000', '277 000', '304 000', '329 000', '340 000', '360 000', '224 000', '274 000', '256 000', '302 000', '284 000', '315 000', '266 000', '202 000', '241 000', '201 000'];
+
+var Romania, Bucuresti;
+
+var arr = [];
+
+request('https://covid19ro.org/', (error, response, html) => {
+    if(!error && response.statusCode == 200) {
+
+        var str = '<td>total infectaţi (inf)<td>';
+        var n = html.indexOf(str);
+        var infectati = '', decedati = '', vindecati = '';
+        for (let i = n + str.length; (html[i] >= '0' && html[i] <= '9') || html[i] == ' '; ++ i)
+            infectati += html[i];
+        
+        str = '<td>decedaţi (dec)<td>';
+        n = html.indexOf(str);
+        for (let i = n + str.length; (html[i] >= '0' && html[i] <= '9') || html[i] == ' '; ++ i)
+            decedati += html[i];
+        
+        str = '<td>vindecaţi (vin)<td>';
+        n = html.indexOf(str);
+        for (let i = n + str.length; (html[i] >= '0' && html[i] <= '9') || html[i] == ' '; ++ i)
+            vindecati += html[i];
+
+        Romania = new Judet('Romania', infectati, decedati, vindecati);
+
+        infectati = '';
+        str = '<td>inf<td>';
+        n = html.indexOf(str);
+        for (let i = n + str.length; (html[i] >= '0' && html[i] <= '9') || html[i] == ' '; ++ i)
+            infectati += html[i];
+
+        Bucuresti = new Judet('Bucuresti', infectati, '', '');
+
+        for (let i = n + 1; p < 41;) {
+            infectati = '';
+            decedati = '';
+            vindecati = '';
+
+            str = '<td>inf<td>';
+            var pos = html.indexOf(str, i);
+
+            for (let j = pos + str.length; (html[j] >= '0' && html[j] <= '9') || html[j] == ' '; ++ j)
+                infectati += html[j];
+            
+            str = '<td>dec<td>';
+            var pos = html.indexOf(str, i);
+
+            for (let j = pos + str.length; (html[j] >= '0' && html[j] <= '9') || html[j] == ' '; ++ j)
+                decedati += html[j];
+
+            str = '<td>vin<td>';
+            var pos = html.indexOf(str, i);
+
+            for (let j = pos + str.length; (html[j] >= '0' && html[j] <= '9') || html[j] == ' '; ++ j)
+                vindecati += html[j];
+            
+            var x = new Judet(ID[p], infectati, decedati, vindecati);
+            arr.push(x);
+            
+            ++ p;
+            i = pos + 1;
+        }
+        
+        /**
+        for (let i = 0; i < 41; ++ i) {
+            console.log(arr[i].id);
+            console.log(arr[i].infectati);
+            console.log(arr[i].decedati);
+            console.log(arr[i].vindecati);
+        }
+        **/
+    }
+});
+
+const sec = 1000;
+var info = 'https://covid19.geo-spatial.org/';
+const dim = 3;
+const fakenews = ['Incalzirea Globala nu exista. https://www.activenews.ro/stiri-mediu/Incalzirea-globala-o-mare-minciuna-Steven-Mosher-om-de-stiinta-%E2%80%9ESchimbarile-climatice-sunt-cea-mai-mare-FRAUDA-stiintifica-savarsita-vreodata-asupra-familiei-omului-.-Cum-se-incearca-obtinerea-controlului-asupra-populatiei-146926', 'Mastile sunt cipate. https://www.smartradio.ro/covid-19-exista-cip-uri-integrate-in-masti-dar-cu-ce-scop/', '5G te spala pe creier. https://www.facebook.com/1499958970260012/posts/2389227991333101/'];
+
+function convertPopToInt(arg) {
+    let x = 0;
+    for (let i = 0; i < arg.length; ++ i)
+        if (arg[i] != ' ')
+            x = x * 10 + (arg[i] - '0');
+    return x;
+};
+
+client.on('message', message => {
+
+    if (message.content == prefix + 'covid')
+        message.channel.send('In ' + Romania.id + ' exista:\n * ' + Romania.infectati + ' infectati de COVID-19\n * ' + Romania.decedati + ' decedati de COVID-19\n * ' + Romania.vindecati + ' vindecati de COVID-19');
+    if (message.content.startsWith(prefix + 'covid ')) {
+        var args = message.content.slice(7);
+        var command = '';
+        if (args[0] >= 'a')
+            command += args[0].toUpperCase();
+        else
+            command += args[0];
+        for (let i = 1; i < args.length; ++ i) {
+            if (args[i] <= 'Z' && args[i] != '-')
+                command += args[i].toLowerCase();
+            else
+                command += args[i];
+        }
+        if (command == 'Bucuresti')
+            message.channel.send('In ' + Bucuresti.id + ' exista:\n * ' + Bucuresti.infectati + ' infectati de COVID-19');
+        else {
+            var OK = 0;
+            for (let i = 0; i < 41; ++ i) {
+                if (command == arr[i].id) {
+                    message.channel.send('In ' + arr[i].id + ' exista:\n * ' + arr[i].infectati + ' infectati de COVID-19\n * ' + arr[i].decedati + ' decedati de COVID-19\n * ' + arr[i].vindecati + ' vindecati de COVID-19');
+                    OK = 1;
+                    break;
+                }
+            }
+            if (OK == 0)
+                message.channel.send('Nu exista judetul ' + command + '!');
+        }
+    }
+});
+
+client.login(TOKEN);
